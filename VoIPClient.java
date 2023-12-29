@@ -3,16 +3,82 @@ import java.io.*;
 import java.net.*;
 import javax.sound.sampled.*;
 
+
+// TODO: ADD MESSAGING SERVICES
+
+
 public class VoIPClient extends Thread {
 
     private Socket sock;
     private AudioInputDevice in;
-    private AudioOutputDevice out;
+    // private AudioOutputDevice out;
+    private BufferedReader bufferedReader;
+    private BufferedWriter bufferedWriter;
+    private String username;
 
-    public VoIPClient(InetAddress host, int port) throws IOException {
-        this.sock = new Socket(host, port);
-        this.out = new AudioOutputDevice(new BufferedInputStream(sock.getInputStream()));
-        this.in = new AudioInputDevice(new BufferedOutputStream(sock.getOutputStream()));
+
+    public VoIPClient(InetAddress host, int port, String username) throws IOException {
+        try {
+            this.sock = new Socket(host, port);
+            // this.out = new AudioOutputDevice(new BufferedInputStream(sock.getInputStream()));
+            this.in = new AudioInputDevice(new BufferedOutputStream(sock.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
+            this.username = username;
+        } catch (Exception e) {
+            closeEverything(sock, bufferedReader, bufferedWriter);
+        }
+    }
+
+    
+    public void run() {
+        try {
+            sock.setKeepAlive(true);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        // this.out.start();
+        this.in.start();
+    }
+    
+
+    // ADDITIONAL FEATURE: SEND AND RECEIVE TEXT MESSAGES
+
+    public void sendMessage() {
+        try {
+            bufferedWriter.write(username);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
+            Scanner sc = new Scanner(System.in);
+
+            while(sock.isConnected()) {
+                String messageToSend = sc.nextLine();
+                bufferedWriter.write(username + ": " + messageToSend);
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+            }
+        } catch (Exception e) {
+            closeEverything(sock, bufferedReader, bufferedWriter);
+        }
+    }
+
+    public void listenForMessage() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String msgFromGroupChat;
+
+                while(sock.isConnected()) {
+                    try {
+                        msgFromGroupChat = bufferedReader.readLine();
+                        System.out.println(msgFromGroupChat);
+                    } catch (Exception e) {
+                        closeEverything(sock, bufferedReader, bufferedWriter);
+                    }
+                }
+            }
+        }).start();
     }
 
     public static void main(String[] args) {
@@ -25,23 +91,34 @@ public class VoIPClient extends Thread {
             e.printStackTrace();
         }
         try {
-            VoIPClient client = new VoIPClient(host, 2728);
+            System.out.print("Enter your name: ");
+            Scanner sc = new Scanner(System.in);
+            String username = sc.nextLine();
+            VoIPClient client = new VoIPClient(host, 2728, username);
             client.start();
+            // client.listenForMessage();
+            // client.sendMessage();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void run() {
+
+    // Method to tackle Execptions on sending texts.
+    public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
         try {
-            sock.setKeepAlive(true);
-        } catch (SocketException e) {
+            if(bufferedReader != null)
+            bufferedReader.close();
+            if(bufferedWriter != null)
+            bufferedWriter.close();
+            if(socket != null)
+            socket.close();
+            if(in != null) 
+            this.in.shutdown();
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        // this.out.start();
-        this.in.start();
     }
-
 }
 
 class AudioInputDevice extends Thread {
@@ -114,65 +191,4 @@ class AudioInputDevice extends Thread {
 
         }
     }
-
-}
-
-class AudioOutputDevice extends Thread {
-
-    private static AudioFormat defaultFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 8000.0f, 16, 2, 4, 8000.0f, true);
-
-    private SourceDataLine dataLine;
-    private AudioFormat format;
-    private InputStream stream;
-
-    public AudioOutputDevice(InputStream stream) {
-        this(stream, defaultFormat);
-    }
-
-    public AudioOutputDevice(InputStream stream, AudioFormat format) {
-        this.stream = stream;
-        this.format = format;
-        this.dataLine = null;
-    }
-
-    private boolean open() {
-        if (dataLine != null) {
-            return true;
-        }
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-        try {
-            dataLine = (SourceDataLine) AudioSystem.getLine(info);
-            dataLine.open(format);
-            return true;
-        } catch (LineUnavailableException e) {
-            return false;
-        }
-    }
-
-    @Override
-    public void run() {
-        if (this.open()) {
-            dataLine.start();
-            try {
-                while (true) {
-                    byte[] buffer = new byte[dataLine.getBufferSize() / 5];
-                    int read = stream.read(buffer, 0, buffer.length);
-                    dataLine.write(buffer, 0, read);
-                }
-            } catch (IOException e) {
-                shutdown();
-            }
-        }
-    }
-
-    public void shutdown() {
-        dataLine.stop();
-        dataLine.flush();
-        try {
-            stream.close();
-        } catch (IOException e) {
-
-        }
-    }
-
 }
