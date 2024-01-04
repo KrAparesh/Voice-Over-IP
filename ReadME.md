@@ -22,9 +22,9 @@ VoWi-Fi Architecture: Gain insights into the architecture of a simple VoWi-Fi sy
 Clone this repository.
 Ensure you have Java installed on your system.
 Navigate to the project directory in your terminal.
-Compile the Java files: javac Server.java Client.java
-Run the server: java Server
-In a separate terminal, run the client: java Client
+Compile the Java files: javac VoIPServer.java VoIPClient.java
+Run the server: java VoIPServer
+In a separate terminal, run the client: java VoIPClient
 ## Troubleshooting
 
 Ensure both server and client are connected to the same Wi-Fi network.
