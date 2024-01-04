@@ -4,12 +4,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sound.sampled.*;
 
-
-
-// TODO: ADD MESSAGING SUPPORT
-//       HANDLE ON CLIENT CLOSE EVENT
-
-
 public class VoIPServer extends Thread {
 
     protected ServerSocket sock;
@@ -33,19 +27,12 @@ public class VoIPServer extends Thread {
                 Socket client = sock.accept();
                 System.out.println("[client no. " + clientsOnServer.get() + " connected]");
                 VoIPClientHandler handler = new VoIPClientHandler(this, client);
-                add(handler);
                 Thread thread = new Thread(handler);
                 thread.start();
             }
         } catch (IOException e) {
             System.out.println("An IOException was encountered");
             shutdown();
-        }
-    }
-
-    public void broadcast(byte[] bytes) {
-        for (int i = 0; i < this.clientHandlers.size(); i++) {
-            this.clientHandlers.get(i).sendMessage(bytes);
         }
     }
 
@@ -84,48 +71,32 @@ public class VoIPServer extends Thread {
         System.out.println("Server started on host + " + server.getName());
     }
 
-}
-
-class VoIPClientHandler extends Thread {
-
-    private final VoIPServer server;
-    private final InputStream in;
-    private final OutputStream out;
-    private final AudioOutputDevice aout;
-
-    public VoIPClientHandler(VoIPServer server, Socket sock) throws IOException {
-        this.server = server;
-        this.in = new BufferedInputStream(sock.getInputStream());
-        this.out = new BufferedOutputStream(sock.getOutputStream());
-        this.aout = new AudioOutputDevice(new BufferedInputStream(sock.getInputStream()));
-    }
-
-    public void run() {
-        // byte[] bytes = new byte[64];
-        // try {
-        //     while (this.in.read(bytes) != 0) {
-        //         System.out.println(Arrays.toString(bytes));
-        //         this.server.broadcast(bytes);
-        //     }
-        // } catch (IOException e) {
-        //     shutdown();
-        // }
-        this.aout.start();
-    }
-
-    public void sendMessage(byte[] bytes) {
-        try {
-            this.out.write(bytes);
-            // this.aout.start();
-        } catch (IOException e) {
-            e.printStackTrace();
+    class VoIPClientHandler extends Thread {
+    
+        private final VoIPServer server;
+        private final InputStream in;
+        private final OutputStream out;
+        private final AudioOutputDevice aout;
+    
+        public VoIPClientHandler(VoIPServer server, Socket sock) throws IOException {
+            this.server = server;
+            this.in = new BufferedInputStream(sock.getInputStream());
+            this.out = new BufferedOutputStream(sock.getOutputStream());
+            this.aout = new AudioOutputDevice(new BufferedInputStream(sock.getInputStream()));
+            clientHandlers.add(this);
+        }
+    
+        public void run() {           
+            this.aout.start();
+        }
+    
+        public void shutdown() {
+            this.server.remove(this);
         }
     }
 
-    public void shutdown() {
-        this.server.remove(this);
-    }
 }
+
 
 class AudioOutputDevice extends Thread {
 

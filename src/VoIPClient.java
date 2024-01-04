@@ -11,7 +11,6 @@ public class VoIPClient extends Thread {
 
     private Socket sock;
     private AudioInputDevice in;
-    // private AudioOutputDevice out;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
     private String username;
@@ -20,7 +19,6 @@ public class VoIPClient extends Thread {
     public VoIPClient(InetAddress host, int port, String username) throws IOException {
         try {
             this.sock = new Socket(host, port);
-            // this.out = new AudioOutputDevice(new BufferedInputStream(sock.getInputStream()));
             this.in = new AudioInputDevice(new BufferedOutputStream(sock.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
