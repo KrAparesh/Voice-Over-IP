@@ -21,11 +21,9 @@ public class VoIPServer extends Thread {
     public void run() {
         try {
             sock = new ServerSocket(port);
-            System.out.println(InetAddress.getLocalHost());
-            System.out.println(sock);
             while (!sock.isClosed()) {
                 Socket client = sock.accept();
-                System.out.println("[client no. " + clientsOnServer.get() + " connected]");
+                System.out.println("Client " + clientsOnServer.get() + " connected: " + client.getLocalSocketAddress());
                 VoIPClientHandler handler = new VoIPClientHandler(this, client);
                 Thread thread = new Thread(handler);
                 thread.start();
@@ -65,10 +63,10 @@ public class VoIPServer extends Thread {
     }
     
 
-    public static void main(String[] args) {
+    public static void main(String[] args)throws IOException {
         VoIPServer server = new VoIPServer(2728);
+        System.out.println("Server started on address: " + InetAddress.getLocalHost());
         server.start();
-        System.out.println("Server started on host + " + server.getName());
     }
 
     class VoIPClientHandler extends Thread {

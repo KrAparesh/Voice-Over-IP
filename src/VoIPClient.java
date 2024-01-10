@@ -3,26 +3,20 @@ import java.io.*;
 import java.net.*;
 import javax.sound.sampled.*;
 
-
-// TODO: ADD MESSAGING SERVICES
-
-
 public class VoIPClient extends Thread {
 
     private Socket sock;
     private AudioInputDevice in;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
-    private String username;
 
 
-    public VoIPClient(InetAddress host, int port, String username) throws IOException {
+    public VoIPClient(InetAddress host, int port) throws IOException {
         try {
             this.sock = new Socket(host, port);
             this.in = new AudioInputDevice(new BufferedOutputStream(sock.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
-            this.username = username;
         } catch (Exception e) {
             closeEverything(sock, bufferedReader, bufferedWriter);
         }
@@ -39,63 +33,20 @@ public class VoIPClient extends Thread {
         this.in.start();
     }
     
-
-    // ADDITIONAL FEATURE: SEND AND RECEIVE TEXT MESSAGES
-
-    public void sendMessage() {
-        try {
-            bufferedWriter.write(username);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
-
-            Scanner sc = new Scanner(System.in);
-
-            while(sock.isConnected()) {
-                String messageToSend = sc.nextLine();
-                bufferedWriter.write(username + ": " + messageToSend);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
-            }
-        } catch (Exception e) {
-            closeEverything(sock, bufferedReader, bufferedWriter);
-        }
-    }
-
-    public void listenForMessage() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String msgFromGroupChat;
-
-                while(sock.isConnected()) {
-                    try {
-                        msgFromGroupChat = bufferedReader.readLine();
-                        System.out.println(msgFromGroupChat);
-                    } catch (Exception e) {
-                        closeEverything(sock, bufferedReader, bufferedWriter);
-                    }
-                }
-            }
-        }).start();
-    }
-
     public static void main(String[] args) {
+        Scanner sc = new Scanner (System.in);
         InetAddress host = null;
-        try {  
-            host = InetAddress.getByName("Inspiron-5320");
-            // host = InetAddress.getLocalHost();
-            System.out.println(host);
+        try { 
+            System.out.print("Enter the host name to connect to: ");
+            // host = InetAddress.getByName("Inspiron-5320");
+            host = InetAddress.getByName(sc.nextLine());
+            System.out.println("Successfully connected to : " + host);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         try {
-            System.out.print("Enter your name: ");
-            Scanner sc = new Scanner(System.in);
-            String username = sc.nextLine();
-            VoIPClient client = new VoIPClient(host, 2728, username);
+            VoIPClient client = new VoIPClient(host, 2728);
             client.start();
-            // client.listenForMessage();
-            // client.sendMessage();
         } catch (IOException e) {
             e.printStackTrace();
         }
