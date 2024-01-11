@@ -23,7 +23,7 @@ public class VoIPServer extends Thread {
             sock = new ServerSocket(port);
             while (!sock.isClosed()) {
                 Socket client = sock.accept();
-                System.out.println("Client " + clientsOnServer.get() + " connected: " + client.getLocalSocketAddress());
+                System.out.println("Client " + (clientHandlers.size() + 1) + " connected: " + client.getInetAddress());
                 VoIPClientHandler handler = new VoIPClientHandler(this, client);
                 Thread thread = new Thread(handler);
                 thread.start();
@@ -36,13 +36,13 @@ public class VoIPServer extends Thread {
 
     public void remove(VoIPClientHandler clientHandler) {
         if (this.clientHandlers.remove(clientHandler)) {
-            this.clientsOnServer.decrementAndGet(); // Fix: Use decrementAndGet() to decrement the counter
+            this.clientsOnServer.getAndDecrement(); // Fix: Use decrementAndGet() to decrement the counter
         }
     }
 
     public void add(VoIPClientHandler clientHandler) {
         if (this.clientHandlers.add(clientHandler)) {
-            this.clientsOnServer.incrementAndGet(); // Fix: Use incrementAndGet() to increment the counter
+            this.clientsOnServer.getAndIncrement(); // Fix: Use incrementAndGet() to increment the counter
         }
     }
 
